@@ -1,0 +1,17 @@
+{
+  "services": [
+    {
+      "name": "crypto-rates-service",
+      "description": "Similar to Market Rates service but for Cryptocurrencies",
+      "bindable": true,
+      "plans": [
+        {
+          "name": "default",
+          "description": "crypto-rates service plan",
+          "id": "efad0a26-140c-45b9-a98d-50a2313c320d"
+        }
+      ],
+      "id": "e8afdf19-a3d7-4661-b421-1c770dfbd40d"
+    }
+  ]
+}

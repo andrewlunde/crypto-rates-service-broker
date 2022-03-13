@@ -1,0 +1,14 @@
+{
+  "generator-sap-service-broker": {
+    "package_version": "1.0.0",
+    "project_name": "crypto-rates-service-broker",
+    "app_name": "crypto-rates",
+    "app_desc": "Similar to Market Rates service but for Cryptocurrencies",
+    "suffix_name": "dev",
+    "broker_user_name": "broker",
+    "cf_domain": "cfapps.us10.hana.ondemand.com",
+    "ex1_cust_org_name": "cryptorates",
+    "ex2_cust_org_name": "b9f2df47trial",
+    "vendor_name": "Partner Engineering"
+  }
+}

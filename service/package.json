@@ -1,0 +1,22 @@
+{
+  "name": "crypto-rates-service",
+  "version": "1.0.0",
+  "description": "Example crypto-rates service",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@sap/sbf": "^6.0.0",
+    "@sap/xsenv": "^2.2.0",
+    "@sap/xssec": "^2.2.4",
+    "express": "^4.17.1",
+    "passport": "^0.4.0",
+    "sqlite3": "^5.0.0",
+    "nodemon": "latest"
+  },
+  "engines": {
+    "node": "^12.0.0"
+  }
+}

@@ -1,0 +1,46 @@
+---
+applications:
+
+- name: crypto-rates-service
+  host: crypto-rates-service-dev
+  buildpacks:
+    - nodejs_buildpack
+  memory: 128M
+  path: service
+  services:
+    - crypto-rates-uaa
+
+- name: crypto-rates-service-broker
+  host: crypto-rates-service-broker-dev
+  buildpacks:
+    - nodejs_buildpack
+  memory: 128M
+  path: broker
+  services:
+    - crypto-rates-uaa
+    - crypto-rates-audit
+  health-check-type: http
+  health-check-http-endpoint: /health
+  env:
+      SBF_CATALOG_SUFFIX: dev
+      SBF_BROKER_CREDENTIALS_HASH: >
+        {
+          "broker": "[hashed-password]"
+        }
+      SBF_SERVICE_CONFIG: >
+        {
+          "crypto-rates-service": {
+            "extend_credentials": {
+              "shared": {
+                "downloadUrl": "https://crypto-rates-service-dev.cfapps.us10.hana.ondemand.com/downloadMarketData",
+                "uploadUrl": "https://crypto-rates-service-dev.cfapps.us10.hana.ondemand.com/uploadMarketData",
+                "vendor": "Partner Engineering"
+              },
+              "per_plan": {
+                "default": {
+                  "url": "https://crypto-rates-service-dev.cfapps.us10.hana.ondemand.com"
+                }
+              }
+            }
+          }
+        }
