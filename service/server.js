@@ -5,8 +5,36 @@ const express = require('express');
 const xsenv = require('@sap/xsenv');
 const passport = require('passport');
 const JWTStrategy = require('@sap/xssec').JWTStrategy;
+// const xmlparser = require('express-xml-bodyparser');
+// const contentType = require('content-type')
+
+// https://www.npmjs.com/package/sprintf-js#format-specification
+const sprintf = require('sprintf-js').sprintf;
+
+
+const getRawBody = require('raw-body');
 
 const app = express();
+
+app.use(express.json());
+app.use(express.urlencoded({
+  extended: true
+}));
+// xmlparser.regexp = /^text\/plain$/i;
+// app.use(xmlparser());
+
+app.use(function (req, res, next) {
+  getRawBody(req, {
+    length: req.headers['content-length'],
+    limit: '1mb',
+    // encoding: contentType.parse(req).parameters.charset
+    encoding: 'utf-8',
+  }, function (err, string) {
+    if (err) return next(err)
+    req.text = string
+    next()
+  });
+});
 
 passport.use(new JWTStrategy(xsenv.getServices({uaa:{tag:'xsuaa'}}).uaa));
 
@@ -157,7 +185,7 @@ app.post('/uploadMarketData', (req, res) => {
     console.log('async: ' + async);
   }
 
-  console.log("End uploadMarketData.");
+  console.log("Assemble Output uploadMarketData.");
   // res.json([{ async: async }]);
   res.status(201).end();
 });
@@ -169,24 +197,157 @@ app.post('/downloadMarketData', (req, res) => {
     console.log('async: ' + async);
   }
 
+  var content_type = "";
+
+  if (req.headers['content-type'] != undefined) {
+    content_type = req.headers['content-type'];
+    console.log('Content-Type: ' + content_type);
+  }
+
   console.log("End downloadMarketData.");
-  res.json([{
-          "providerCode": "ECB",
-          "marketDataCategory": "01",
-          "marketDataSource": "ECB",
-          "marketDataKey": "EUR~USD",
-          "marketDataProperty": "C",
-          "validFromDate": "2018-05-01",
-          "validFromTime": "00:00:00",
-          "marketDataValue": 1.2310000000,
-          "currency": null,
-          "fromFactor": null,
-          "toFactor": null,
-          "priceNotation": null,
-          "termInDays": "",
-          "messageType": "",
-          "messageText": ""
-  }]);
+
+  if (content_type == "application/json") {
+    console.log('JSON');
+    res.json([{
+      "providerCode": "ECB",
+      "marketDataCategory": "01",
+      "marketDataSource": "ECB",
+      "marketDataKey": "EUR~USD",
+      "marketDataProperty": "C",
+      "validFromDate": "2018-05-01",
+      "validFromTime": "00:00:00",
+      "marketDataValue": 1.2310000000,
+      "currency": null,
+      "fromFactor": null,
+      "toFactor": null,
+      "priceNotation": null,
+      "termInDays": "",
+      "messageType": "",
+      "messageText": ""
+    }]);
+  } else if ((content_type == "text/plain") || (content_type == "text/plain; charset=utf-8")) {
+    console.log('TEXT');
+    console.log(req.text);
+    var lines = req.text.split("\n");
+    var line = "";
+    var parsing_input = false;
+
+    // <"SAP_Internet_Market_Data_Request_Format_Version" "text/html 1.0">
+    // <"TableRow1" "RINID1    Instrument Name">20
+    // <"TableRow2" "RINID2    Data Source">15
+    // <"TableRow3" "SPRPTY    Instrument Property">15
+    // <"TableRow4" "DFROMDATE Historical Data Start Date">8
+    // <"TableRow5" "DFROMTIME Historical Data Start Time">6
+    // <"TableRow6" "DTODATE Historical Data End Date">8
+    // <"TableRow7" "DTOTIME Historical Data End Time">6
+    // <"TableRow8" "UNAME     SAP User Requesting">12
+
+    var instrument_name = "";
+    var data_source = "";
+    var instrument_property = "";
+    var data_start_date = "";
+    var data_start_time = "";
+    var data_end_date = "";
+    var data_end_time = "";
+    var user_requesting = "";
+ 
+    var stridx = 0;
+    var strlen = 0;
+    for (var i = 0; i < lines.length; i++) {
+      line = lines[i].trim();
+      // console.log(i + ": " + line);
+      if (line == "</body>") {
+        parsing_input = false;
+      }
+      if (parsing_input) {
+        console.log(i + ": '" + line + "'");
+        stridx += strlen; strlen = 20;
+        instrument_name = line.substring(stridx, stridx+strlen);
+        stridx += strlen; strlen = 15;
+        data_source = line.substring(stridx, stridx+strlen);
+        stridx += strlen; strlen = 15;
+        instrument_property = line.substring(stridx, stridx+strlen);
+        stridx += strlen; strlen = 8;
+        data_start_date = line.substring(stridx, stridx+strlen);
+        stridx += strlen; strlen = 6;
+        data_start_time = line.substring(stridx, stridx+strlen);
+        stridx += strlen; strlen = 8;
+        data_end_date = line.substring(stridx, stridx+strlen);
+        stridx += strlen; strlen = 6;
+        data_end_time = line.substring(stridx, stridx+strlen);
+        stridx += strlen; strlen = 12;
+        user_requesting = line.substring(stridx, stridx+strlen);
+
+        console.log("instrument_name: " + instrument_name);
+        console.log("data_source: " + data_source);
+        console.log("instrument_property: " + instrument_property);
+        console.log("data_start_date: " + data_start_date);
+        console.log("data_start_time: " + data_start_time);
+        console.log("data_end_date: " + data_end_date);
+        console.log("data_end_time: " + data_end_time);
+        console.log("user_requesting: " + user_requesting);
+
+      }
+      if (line == "<body>") {
+        parsing_input = true;
+      }
+    }
+
+    // <"SAP_Internet_Market_Data_Answer_Format_Version" "text/plain 1.0">
+    // <"TableRow1" "RINID1    Instrument Name">20
+    // <"TableRow2" "RINID2    Data Source">15
+    // <"TableRow3" "SPRPTY    Instrument Property">15
+    // <"TableRow4" "SSTATS Request Status: Blanks, if ok ">2
+    // <"TableRow5" "ERROR Error Message relating to STATUS ">80
+    // <"TableRow6" "RSUPID Data source">10
+    // <"TableRow7" "RCONID Contributor Identification">10
+    // <"TableRow8" "RCONCN Contributor Country Identification">5
+    // <"TableRow9" "DATE Date in YYYYMMDD Format">8
+    // <"TableRow10" "TIME Time in HHMMSS Format">6
+    // <"TableRow11" "VALUE Value with decimal point optionally">20
+    // <"TableRow12" "CURRENCY Currency Information for security prices">5
+    // <"TableRow13" "MKIND Market Indicator for security prices">5
+    // <"TableRow14" "CFFACT Currency: From factor">7
+    // <"TableRow15" "CTFACT Currency: To factor">7
+    // <"TableRow16" "UNAME Currency: User Name">12
+    // <"TableRow17" "RZUSATZ Volatilities: Number of Days">10
+    // <"TableRow18" "NEWLINE Line Feed Character/Newline">1
+ 
+
+    // https://www.npmjs.com/package/sprintf-js#format-specification
+
+    res.header('content-type', 'text/plain');
+    var txtout = "";
+    var testout = sprintf("%-20s", instrument_name.trim());
+
+    // txtout += "EUR~USD:01          ECB            CLO                                                                                                                       201805010000001.2310000000                                                      \n";
+    txtout += testout;
+    txtout += data_source;
+    txtout += instrument_property;
+    txtout += sprintf("%-2s", ""); // Request Status
+    txtout += sprintf("%-80s", ""); // Error Message
+    txtout += sprintf("%-10s", ""); // Data Source
+    txtout += sprintf("%-10s", ""); // Contributor ID
+    txtout += sprintf("%-5s", ""); // Contributor Country
+    txtout += sprintf("%-8s", "20200101"); // Date in YYYYMNDD
+    txtout += sprintf("%-6s", "000000"); // Time in HHMMSS
+    txtout += sprintf("%-20s", "1.231"); // Value with decimal point optionally // This is going to be an issue with cryptomoney
+    txtout += sprintf("%-5s", ""); // Currency Information for security prices
+    txtout += sprintf("%-5s", ""); // Market Indicator for security prices
+    txtout += sprintf("%-7s", ""); // Currency: From factor
+    txtout += sprintf("%-7s", ""); // Currency: To factor
+    txtout += sprintf("%-12s", ""); // Currency: User Name
+    txtout += sprintf("%-10s", ""); // Volatilities: Number of Days
+    // txtout += "ECB            CLO                                                                                                                       201805010000001.2310000000                                                      \n";
+    txtout += "\n";
+    console.log(txtout);
+    res.send(txtout);
+  } else {
+    console.log('UNKNOWN');
+    res.header('content-type', 'text/plain');
+    res.send("Something happened that was not expected.");
+  }
+
 });
 
 const port = process.env.PORT || 8080;

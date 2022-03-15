@@ -12,6 +12,9 @@
     "@sap/xsenv": "^2.2.0",
     "@sap/xssec": "^2.2.4",
     "express": "^4.17.1",
+    "content-type": "latest",
+    "raw-body": "latest",
+    "sprintf-js": "latest",
     "passport": "^0.4.0",
     "sqlite3": "^5.0.0",
     "nodemon": "latest"
